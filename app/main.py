@@ -34,6 +34,7 @@ import requests
 from adal import AuthenticationContext
 from azure.keyvault import KeyVaultClient
 from msrestazure.azure_active_directory import AdalAuthentication, MSIAuthentication
+from msal import ConfidentialClientApplication
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from OpenSSL import crypto
@@ -119,10 +120,13 @@ class KeyVaultAgent(object):
             else:
                 authority = '/'.join([AZURE_AUTHORITY_SERVER.rstrip('/'), self.tenant_id])
                 _logger.info('Using authority: %s', authority)
-                context = AuthenticationContext(authority)
+                # context = AuthenticationContext(authority)
                 _logger.info('Using vault resource name: %s and client id: %s', VAULT_RESOURCE_NAME, self.client_id)
-                credentials = AdalAuthentication(context.acquire_token_with_client_credentials, VAULT_RESOURCE_NAME,
-                                                 self.client_id, self.client_secret)
+                clientApp = ConfidentialClientApplication(self.client_id, self.client_secret, self.tenant_id)
+                # credentials = AdalAuthentication(context.acquire_token_with_client_credentials, VAULT_RESOURCE_NAME,
+                #                                  self.client_id, self.client_secret)
+                scope = [ VAULT_RESOURCE_NAME + "/.default" ]
+                credentials = clientApp.acquire_token_for_client(scope)
         return KeyVaultClient(credentials)
 
     def _get_tenant_id(self, tenant_id_from_config):
